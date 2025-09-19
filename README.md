@@ -1,4 +1,4 @@
-## Animação Computacional de Corpos Rígidos ##
+# Animação Computacional de Corpos Rígidos 
 
 Este é o repositório para o projeto de pesquisa "Animação Computacional de Corpos Rígidos" , desenvolvido junto ao Departamento de Matemática Aplicada e Estatística do Instituto de Ciências Matemáticas e de Computação (ICMC) da Universidade de São Paulo (USP).
 
@@ -6,13 +6,13 @@ Orientador: Prof. Dr. Afonso Paiva Neto
 
 O projeto é apresentado como requisito para o Programa Unificado de Bolsas (PUB) da Pró-Reitoria da Universidade de São Paulo, conforme o edital 2025/2026.
 
-🎯 Sobre o Projeto
+## 🎯 Sobre o Projeto
 
 Este projeto tem como objetivo principal o estudo de problemas de Geometria Computacional aplicados a animações 3D e à física por trás de sua construção. Serão exploradas a dinâmica de corpos rígidos e de fluidos, com movimentos simulados por algoritmos que se baseiam em teorias físicas.
 
 A Computação Gráfica é uma área com vastas aplicações, desde a criação de interfaces para softwares e jogos até o desenvolvimento de tecnologias de ponta em áreas como medicina (simuladores para treinamento e diagnóstico) e segurança no trânsito (simuladores de direção). O projeto busca aprofundar o conhecimento nas ferramentas técnicas que possibilitam essas inovações.
 
-🚀 Objetivos
+## 🚀 Objetivos
 
 Os objetivos centrais deste projeto são:
 
@@ -24,7 +24,7 @@ Implementação Prática: Capacitar os alunos a identificar problemas, encontrar
 
 Estudo de Dinâmica: Trabalhar conceitos de matemática, física e métodos numéricos para a simulação de movimentos, colisões, rotações e quedas de corpos rígidos.
 
-🛠️ Metodologia e Tecnologias
+## 🛠️ Metodologia e Tecnologias
 
 O projeto será desenvolvido utilizando a linguagem de programação 
 
@@ -32,7 +32,7 @@ Python e a API (Interface de Programação de Aplicações) gráfica OpenGL (via
 
 A metodologia envolverá o estudo da dinâmica de Corpos Rígidos — objetos que não se deformam ao se mover ou colidir. Serão abordados conceitos como centro de massa, momento de inércia, torque e conservação de energia para criar simulações computacionais realistas.
 
-📈 Etapas do Projeto
+## 📈 Etapas do Projeto
 
 O projeto será dividido nas seguintes etapas, a serem desenvolvidas entre 2025 e 2026:
 
@@ -46,7 +46,7 @@ Etapa 4: Submissão de um artigo de Iniciação Científica para uma conferênci
 
 Etapa 5: Preparação do relatório final.
 
-📚 Bibliografia
+## 📚 Bibliografia
 
     [1] House, D.; Keyser, J.; Foundations of physically based modeling and animation.; CRC Press, 2017.
 
