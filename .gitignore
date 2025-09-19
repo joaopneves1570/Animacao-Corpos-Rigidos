@@ -8,5 +8,5 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Ignorar pastas de editores (exemplo para VS Code)
+# Ignorar pastas do vscode
 .vscode/g
