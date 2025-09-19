@@ -1,4 +1,4 @@
-Animação Computacional de Corpos Rígidos
+## Animação Computacional de Corpos Rígidos ##
 
 Este é o repositório para o projeto de pesquisa "Animação Computacional de Corpos Rígidos" , desenvolvido junto ao Departamento de Matemática Aplicada e Estatística do Instituto de Ciências Matemáticas e de Computação (ICMC) da Universidade de São Paulo (USP).
 
