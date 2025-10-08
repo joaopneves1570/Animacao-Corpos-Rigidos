@@ -1,4 +1,5 @@
 import glfw
+from OpenGL.GL import *
 
 class Window:
     def __init__(self):
@@ -20,14 +21,19 @@ class Window:
         #cria o contexto para rodar OpenGl (máquina de estado que guarda os dados relacionados a rendereização da aplicação)
         glfw.make_context_current(self._window)
 
+        #seta a cor inicial da janela
+        glClearColor(0, 0.1, 0.3, 1)
+
         self.main_loop()
     
     def main_loop(self):
         #window_should_close -> variavel que vira true quando clica no x da janela
         while not glfw.window_should_close(self._window):
             glfw.poll_events()  #trata eventos, clique no x da janela é considerado um evento
-            glfw.swap_buffers(self._window)
+
+            glClear(GL_COLOR_BUFFER_BIT)
         
+            glfw.swap_buffers(self._window)
 
         #encerra o glfw
         glfw.terminate()
