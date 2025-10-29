@@ -140,7 +140,7 @@ class App:
 
     def main_loop(self):
 
-        while not self._window.should_close(self._window):
+        while not glfw.window_should_close(self._window):
             glfw.poll_events()  #trata eventos, clique no x da janela é considerado um evento
 
             glClear(GL_COLOR_BUFFER_BIT)
@@ -179,27 +179,110 @@ class Circle:
         glEnd()
 
 class collision(Circle):
-    def __init__(self, center: tuple, radius: float, color: tuple, velocity: arrays, num_segments=2000):
+    def __init__(self, cr: float, cf: float, center: tuple, radius: float, color: tuple, velocity: arrays, num_segments=2000):
         super().__init__(center, radius, color, velocity, num_segments)
         self.h = 0.016
         self.e = 0.0001
         self.n = 0
         self.t = 0.0
-        self.tmax = 20.0
+        self.tmax = 1000.0
         self.s = np.array([self.x, self.y, self.velocity[0], self.velocity[1]], dtype=np.float32)  # estado: posição (x, y) e velocidade (vx, vy)
         self.s0 = self.s.copy()
-        self.s_ = np.array([self.velocity[0], self.velocity[1], 0.0, -9.81], dtype=np.float32)  # derivada do estado: velocidade e aceleração (ax, ay)
+        self.s_ = np.array([self.velocity[0], self.velocity[1], 0.0, 0.0], dtype=np.float32)  # derivada do estado: velocidade e aceleração (ax, ay)
+        self.cr = cr
+        self.cf = cf
 
-    def derivar(self, s):
-        return np.array([s[2], s[3], 0.0, -9.81], dtype=np.float32)  # aceleração constante na direção y (gravidade)
+    def Derivar(self, s):
+        return np.array([s[2], s[3], 0.0, 0.0], dtype=np.float32)  # aceleração constante na direção y (gravidade)
 
+    def Integrar(self, s, s_, intervalo):
+        return s + (s_*intervalo)  #Funciona graças ao Numpy
+
+    def CollisionBetween(self, s, snew):
+        collided = False
+        f_min = 1.0
+        n_collision = np.array([0.0, 0.0], dtype=np.float32)
+
+        pos_i = s[0:2]
+        pos_f = snew[0:2]
+        r = self.radius
+
+        planes = [
+            (np.array([0.0, -1.0]), np.array([0.0, 1.0])), #chao
+            (np.array([1.0, 0.0]), np.array([-1.0, 0.0])), #parede direita
+            (np.array([-1.0, 0.0]), np.array([1.0, 0.0])), #parede esquerda
+            (np.array([0.0, 1.0]), np.array([0.0, -1.0])), #teto
+        ]
+
+        for P, n in planes:
+
+            #d1 distância antes do plano e d2 distâmcia depois do plano
+            d1 = np.dot(pos_i - P, n) - r
+            d2 = np.dot(pos_f - P, n) - r
+
+            if d1 >= 0 and d2 < 0:
+                f = d1 / (d1 - d2)
+                if f < f_min:
+                    f_min = f
+                    n_collision = n
+                    collided = True
+
+        return collided, f_min, n_collision
+    
+    def CollisionResponse(self, s, n_collision):
+        v_minus = s[2:4]
+
+        v_minus_n = np.dot(v_minus, n_collision) * n_collision
+        v_minus_t = v_minus - v_minus_n
+
+        v_plus_n = -self.cr * v_minus_n
+        v_plus_t = (1 - self.cf) * v_minus_t
+
+        v_plus = v_plus_n + v_plus_t
+
+        snew = s.copy()
+        snew[2:4] = v_plus
+
+        return snew
+        
 
     def update(self):
-        while (self.t < self.tmax):
-            intervaloRestante = self.h
+        if self.t >= self.tmax:
+            return
+
+        intervaloRestante = self.h
+        while (intervaloRestante > self.e):
             intervalo = intervaloRestante
-            while (intervaloRestante > self.e):
-                self.s_ = self.derivar(self.s)
+            self.s_ = self.Derivar(self.s)
+            self.snew = self.Integrar(self.s, self.s_, intervalo)
+
+            colidiu, f, n_collisao = self.CollisionBetween(self.s, self.snew)
+
+            if colidiu:
+                intervalo = f*intervalo
+                self.snew = self.Integrar(self.s, self.s_, intervalo)
+                self.snew = self.CollisionResponse(self.snew, n_collisao)
+
+            intervaloRestante = intervaloRestante - intervalo
+            self.s = self.snew
+
+        self.n += 1
+        self.t = self.n*self.h
+
+        self.x = self.s[0]
+        self.y = self.s[1]
+        
+
+
+if __name__ == "__main__":
+    app = App()
+
+    bola1 = collision(cr = 0.9, cf = 0., center = (-0.3, -0.3), radius= 0.1, color = (1.0, 0.0, 0.0), velocity=(0.08, -0.08))
+    bola2 = collision(cr = 0.7, cf = 0.1, center = (0.3, 0.3), radius= 0.1, color = (0.8, 0.0, 0.6), velocity=(-0.075, 0.09))
+
+    app.add_object(bola1)
+    app.add_object(bola2)
+    app.main_loop()
 '''
 while (t < tmax): s é o estado no tempo t
             TimestepRemaining = h;
