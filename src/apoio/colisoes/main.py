@@ -277,12 +277,14 @@ class collision(Circle):
 if __name__ == "__main__":
     app = App()
 
-    bola1 = collision(cr = 0.9, cf = 0., center = (-0.3, -0.3), radius= 0.1, color = (1.0, 0.0, 0.0), velocity=(0.08, -0.08))
+    bola1 = collision(cr = 0.9, cf = 0.2, center = (-0.3, -0.3), radius= 0.1, color = (1.0, 0.0, 0.0), velocity=(0.08, -0.08))
     bola2 = collision(cr = 0.7, cf = 0.1, center = (0.3, 0.3), radius= 0.1, color = (0.8, 0.0, 0.6), velocity=(-0.075, 0.09))
 
     app.add_object(bola1)
     app.add_object(bola2)
     app.main_loop()
+
+    
 '''
 while (t < tmax): s é o estado no tempo t
             TimestepRemaining = h;
