@@ -109,6 +109,8 @@ import glfw
 from OpenGL.GL import *
 import numpy as np
 from math import sin, cos, pi
+import imgui
+from imgui.integrations.glfw import GlfwRenderer
 
 class App:
     def __init__(self):
@@ -129,8 +131,21 @@ class App:
         #cria o contexto para rodar OpenGl (máquina de estado que guarda os dados relacionados a rendereização da aplicação)
         glfw.make_context_current(self._window)
 
+        imgui.create_context()
+        
+        self.impl = GlfwRenderer(self._window)
+
         #seta a cor inicial da janela
         glClearColor(1.0, 1.0, 1.0, 1)
+
+        #desenhando triangulo fixo na tela
+        #definindo pontos (vértices) do triângulo
+        self.tri_verts = [
+            np.array([-0.5, -0.5], dtype=np.float32), # p0
+            np.array([ 0.5, -0.5], dtype=np.float32), # p1
+            np.array([ 0.0,  0.5], dtype=np.float32)  # p2
+        ]
+        
 
         #lista de objetos desenhados
         self._objects = []
@@ -141,19 +156,78 @@ class App:
     def main_loop(self):
 
         while not glfw.window_should_close(self._window):
-            glfw.poll_events()  #trata eventos, clique no x da janela é considerado um evento
+            glfw.poll_events()
+            self.impl.process_inputs() 
+            imgui.new_frame()       
 
+            # --- Início da definição da Interface ---
+            imgui.set_next_window_size(450, 300)
+            imgui.begin("Controles da Simulação", True)
+
+            if self._objects:
+                for i, object in enumerate(self._objects):
+                    
+                    imgui.text(f"--- Bola {i+1} ---") 
+                    
+                    # --- Slider: Restituição (cr) ---
+                    changed_cr, new_cr = imgui.slider_float(
+                        f"Restituição (cr)##bola{i}",
+                        object.cr,    # Valor atual
+                        0.0,          # Min
+                        1.0           # Max
+                    )
+                    if changed_cr:
+                        object.cr = new_cr
+
+                    # --- Slider: Atrito (cf) ---
+                    changed_cf, new_cf = imgui.slider_float(
+                        f"Atrito (cf)##bola{i}", 
+                        object.cf,
+                        0.0,
+                        1.0
+                    )
+                    if changed_cf:
+                        object.cf = new_cf
+                    
+                    # Pega os valores atuais [vx, vy]
+                    vel_xy = [object.s[2], object.s[3]] 
+                    
+                    changed_vel, new_vel = imgui.slider_float2(
+                        f"Velocidade (vx, vy)##bola{i}", 
+                        *vel_xy,  # Passa os dois valores (vx, vy)
+                        -1.0,     # Min (permitir valores negativos)
+                        1.0       # Max
+                    )
+                    
+                    if changed_vel:
+                        object.s[2] = new_vel[0] # Atualiza vx
+                        object.s[3] = new_vel[1] # Atualiza vy
+
+                    imgui.separator() # Adiciona uma linha para separar
+
+            imgui.end()
+            
             glClear(GL_COLOR_BUFFER_BIT)
 
+            glColor3f(0.0, 0.0, 1.0) 
+            glBegin(GL_TRIANGLES)
+            glVertex2f(self.tri_verts[0][0], self.tri_verts[0][1])
+            glVertex2f(self.tri_verts[1][0], self.tri_verts[1][1])
+            glVertex2f(self.tri_verts[2][0], self.tri_verts[2][1])
+            glEnd()
+            
             for obj in self._objects:
                 obj.update()
                 glPushMatrix()
                 glTranslatef(obj.x, obj.y, 0.0)
                 obj.draw()
                 glPopMatrix()
-
+            
+            imgui.render() 
+            self.impl.render(imgui.get_draw_data()) 
             glfw.swap_buffers(self._window)
         
+        self.impl.shutdown()
         glfw.terminate()
     
 class Circle:
@@ -179,7 +253,7 @@ class Circle:
         glEnd()
 
 class collision(Circle):
-    def __init__(self, cr: float, cf: float, center: tuple, radius: float, color: tuple, velocity: arrays, num_segments=2000):
+    def __init__(self, cr: float, cf: float, center: tuple, radius: float, color: tuple, velocity: tuple, triangle_verts: list, num_segments=2000):
         super().__init__(center, radius, color, velocity, num_segments)
         self.h = 0.016
         self.e = 0.0001
@@ -192,6 +266,15 @@ class collision(Circle):
         self.cr = cr
         self.cf = cf
 
+        self.tri_verts = triangle_verts
+
+        self.planes = [
+            (np.array([0.0, -1.0]), np.array([0.0, 1.0])), #chao
+            (np.array([1.0, 0.0]), np.array([-1.0, 0.0])), #parede direita
+            (np.array([-1.0, 0.0]), np.array([1.0, 0.0])), #parede esquerda
+            (np.array([0.0, 1.0]), np.array([0.0, -1.0])), #teto
+        ]
+
     def Derivar(self, s):
         return np.array([s[2], s[3], 0.0, 0.0], dtype=np.float32)  # aceleração constante na direção y (gravidade)
 
@@ -201,22 +284,14 @@ class collision(Circle):
     def CollisionBetween(self, s, snew):
         collided = False
         f_min = 1.0
-        n_collision = np.array([0.0, 0.0], dtype=np.float32)
+        n_collision = np.array([0.0, 0.0], dtype=np.float32) 
 
         pos_i = s[0:2]
         pos_f = snew[0:2]
         r = self.radius
 
-        planes = [
-            (np.array([0.0, -1.0]), np.array([0.0, 1.0])), #chao
-            (np.array([1.0, 0.0]), np.array([-1.0, 0.0])), #parede direita
-            (np.array([-1.0, 0.0]), np.array([1.0, 0.0])), #parede esquerda
-            (np.array([0.0, 1.0]), np.array([0.0, -1.0])), #teto
-        ]
-
-        for P, n in planes:
-
-            #d1 distância antes do plano e d2 distâmcia depois do plano
+        #Verificar Colisão com as Paredes
+        for P, n in self.planes: 
             d1 = np.dot(pos_i - P, n) - r
             d2 = np.dot(pos_f - P, n) - r
 
@@ -227,8 +302,87 @@ class collision(Circle):
                     n_collision = n
                     collided = True
 
+        #Verificar Colisão com as Arestas do Triângulo
+        p0, p1, p2 = self.tri_verts
+        edges = [(p0, p1), (p1, p2), (p2, p0)]
+
+        for p_start, p_end in edges:
+            collided_edge, f_edge, n_edge = self.check_segment_collision(
+                p_start, p_end, pos_i, pos_f, r
+            )
+            
+            if collided_edge and f_edge < f_min:
+                f_min = f_edge
+                n_collision = n_edge
+                collided = True
+
+        #Verificar colisão com os vértices
+        for v in self.tri_verts: 
+            collided_vert, f_vert, n_vert = self.check_vertex_collision(
+                v, pos_i, pos_f, r
+            )
+        
+            if collided_vert and f_vert < f_min:
+                f_min = f_vert
+                n_collision = n_vert
+                collided = True
+
         return collided, f_min, n_collision
     
+    
+    def check_segment_collision(self, p_start, p_end, pos_i, pos_f, r):
+        edge_vec = p_end - p_start
+        
+        n = np.array([edge_vec[1], -edge_vec[0]])
+        n_mag = np.linalg.norm(n)
+        if n_mag < 1e-6: 
+             return False, 1.0, None
+        n = n / n_mag
+       
+        P = p_start
+        d1 = np.dot(pos_i - P, n) - r
+        d2 = np.dot(pos_f - P, n) - r
+
+        if not (d1 >= 0 and d2 < 0):
+            return False, 1.0, None
+
+       
+        f = d1 / (d1 - d2)
+        x_hit_center = pos_i + f * (pos_f - pos_i) 
+        
+        touch_point = x_hit_center - r * n 
+        
+        vec_start_to_touch = touch_point - p_start
+        edge_len = np.linalg.norm(edge_vec)
+        
+        proj = np.dot(vec_start_to_touch, edge_vec) / (edge_len**2)
+               
+        if 0 <= proj <= 1:
+            return True, f, n 
+        else:
+            return False, 1.0, None 
+        
+    def check_vertex_collision(self, v, pos_i, pos_f, r):
+        
+        d1 = np.linalg.norm(pos_i - v) - r
+        d2 = np.linalg.norm(pos_f - v) - r
+
+        if not (d1 >= 0 and d2 < 0):
+            return False, 1.0, None
+
+        f = d1 / (d1 - d2)
+            
+        x_hit_center = pos_i + f * (pos_f - pos_i)
+        
+        # A normal é o vetor do vértice para o centro da bola
+        n = x_hit_center - v
+        n_mag = np.linalg.norm(n)
+        if n_mag < 1e-6: 
+             return False, 1.0, None
+        n = n / n_mag
+        
+        return True, f, n
+
     def CollisionResponse(self, s, n_collision):
         v_minus = s[2:4]
 
@@ -277,33 +431,36 @@ class collision(Circle):
 if __name__ == "__main__":
     app = App()
 
-    bola1 = collision(cr = 0.9, cf = 0.2, center = (-0.3, -0.3), radius= 0.1, color = (1.0, 0.0, 0.0), velocity=(0.08, -0.08))
-    bola2 = collision(cr = 0.7, cf = 0.1, center = (0.3, 0.3), radius= 0.1, color = (0.8, 0.0, 0.6), velocity=(-0.075, 0.09))
+    bola1 = collision(
+        cr = 0.9,
+        cf = 0.2,
+        center = (-1.0, -0.3),
+        radius= 0.1,
+        color = (1.0, 0.0, 0.0),
+        velocity=(0.08, -0.08),
+        triangle_verts=app.tri_verts, 
+    )
+    bola2 = collision(
+        cr = 0.7,
+        cf = 0.1,
+        center = (0.3, 0.3),
+        radius= 0.1,
+        color = (0.8, 0.0, 0.6),
+        velocity=(-0.075, 0.09),
+        triangle_verts=app.tri_verts, 
+    )
+    bola3 = collision(
+        cr = 0.7,
+        cf = 0.1,
+        center = (0.3, 0.3),
+        radius= 0.1,
+        color = (0.0, 1.0, 0.0),
+        velocity=(-0.075, 0.09),
+        triangle_verts=app.tri_verts,  
+    )
 
     app.add_object(bola1)
     app.add_object(bola2)
+    app.add_object(bola3)
     app.main_loop()
-
     
-'''
-while (t < tmax): s é o estado no tempo t
-            TimestepRemaining = h;
-            Timestep = TimestepRemaining;
-            while (TimestepRemaining > 0):
-                s' = GetDeriv(s); aceleração
-
-                integra do estado atual s por um intervalo de tempo Timestep para obter o novo estado
-                snew = Integrate(s, s', Timestep);
-
-                if CollisionBetween(s, snew ):  verifica se houve colisão entre o estado atual e o novo estado
-                    calcula a primeira colisão
-                    Calcula f; usando a equação de f acima
-                    Timestep = f Timestep;
-                    snew = Integrate(s, s', Timestep);
-                    snew = CollisionResponse(snew);
-                
-                TimestepRemaining = TimestepRemaining - Timestep;
-                s = snew;
-            
-            n = n + 1; t = nh;
-'''
