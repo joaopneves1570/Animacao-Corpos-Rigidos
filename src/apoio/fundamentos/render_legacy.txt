@@ -1,0 +1,57 @@
+####OPENGL ANTIGO
+
+    # glBegin(GL_POINTS)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # Liga pares de pontos -> 5 pontos: ponto 1 com 2, 3 com 4 e o 5 nao liga
+    # glBegin(GL_LINES)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # Vai ligando o ponto com o próximo -> 5 pontos: ponto 1 com 2, 2 com 3, 3 com 4 e 4 com 5
+    # glBegin(GL_LINE_STRIP)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # Igual a anterior, mas no final, liga o ponto 5 de volta com o 1
+    # glBegin(GL_LINE_LOOP)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # O triangles gera triangulos a cada 3 vertices, igual o GL_Lines
+    # glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) #polygon mode com fill é pra dentro do poligono
+    # glColor3f(1,1,1)
+    # glBegin(GL_TRIANGLES)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) #polygonmode com line é pra borda do poligono
+    # glColor3f(1,1,1)
+    # glBegin(GL_TRIANGLES)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # triangle fan é igual o line loop, e preenche todo a area com triangulos
+
+    # glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    # glColor3f(1,1,1)
+    # glBegin(GL_TRIANGLE_FAN)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    # glColor3f(1,1,0)
+    # glBegin(GL_TRIANGLE_FAN)
+    # for v in vertices:
+    #     glVertex2fv(v)
+    # glEnd()
+
+    # GL_TRIANGLE_STRIP funciona parecido com o LINE_STRIP
