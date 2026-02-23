@@ -8,14 +8,13 @@ class Bola:
         self.cor = cor
         # Estado físico
         self.pos = np.array([np.random.uniform(-0.9, 0.9), np.random.uniform(-0.9, 0.9)], dtype=np.float32)
-        self.vel = np.array([np.random.uniform(-0.01, 0.01), np.random.uniform(-0.01, 0.01)], dtype=np.float32)
+        self.vel = np.array([np.random.uniform(-0.03, 0.03), np.random.uniform(-0.03, 0.03)], dtype=np.float32)
         
         vertices = []
         dAngle = 2 * np.pi / nDiv
         for i in range(nDiv):
             angle = i * dAngle
-            # Criamos ao redor da origem (0,0)
-            x = raio * np.cos(angle) # Removido np.radians pois angle já está em radianos
+            x = raio * np.cos(angle)
             y = raio * np.sin(angle)
             vertices.append([x, y, cor[0], cor[1], cor[2]])
             
@@ -35,14 +34,22 @@ class Bola:
         glEnableVertexAttribArray(1)
 
     def update(self):
-        # 1. Movimento simples
-        self.pos += self.vel
+        self.pos += self.vel*0.3
 
-        # 2. Colisão com paredes (Normalizando para o espaço -1 a 1 do OpenGL)
-        if abs(self.pos[0]) + self.raio > 1.0:
+        if self.pos[0] + self.raio > 1.0:
+            self.pos[0] = 1.0 - self.raio
             self.vel[0] *= -1
-        if abs(self.pos[1]) + self.raio > 1.0:
-            self.vel[1] *= -1
+        elif self.pos[0] - self.raio < -1.0:
+            self.pos[0] = -1.0 + self.raio
+            self.vel[0] *= (-1)
+        elif self.pos[1] + self.raio > 1.0:
+            self.pos[1] = 1.0 - self.raio
+            self.vel[1] *= (-1)
+        elif self.pos[1] - self.raio < -1.0:
+            self.pos[1] = -1.0 + self.raio
+            self.vel[1] *= (-1)
+        
+
 
     def get_model_matrix(self):
         # Matriz de Identidade 4x4
@@ -51,3 +58,18 @@ class Bola:
         m[0, 3] = self.pos[0]
         m[1, 3] = self.pos[1]
         return m.T # Retorna transposta para o OpenGL (Column-major)
+    
+    def get_pos(self):
+        return self.pos
+    
+    def get_vel(self):
+        return self.vel
+
+    def set_pos(self, pos):
+        self.pos = pos
+
+    def set_vel(self, vel):
+        self.vel = vel
+
+    def get_all_points(self):
+        return self.vertices
