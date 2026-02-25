@@ -12,7 +12,7 @@ mat_loc = None
 def init():
     global bolas, shaderId, mat_loc
 
-    for i in range(100):
+    for i in range(1000):
         r, g, b = np.random.random(3)
         # Cria a bola (geometria centrada)
         bola = Bola(raio=0.02, cor=(r, g, b))
@@ -96,6 +96,8 @@ def render():
         glUniformMatrix4fv(mat_loc, 1, GL_FALSE, model_mat)
         glBindVertexArray(bola.vaoId)
         glDrawArrays(GL_TRIANGLE_FAN, 0, bola.qtdVertices)
+    glUseProgram(0)
+    
     
 
 def keyboard(window, key, scancode, action, mods):
@@ -106,8 +108,8 @@ def keyboard(window, key, scancode, action, mods):
 
 def main():
     glfw.init()
-    base = 400
-    altura = 400
+    base = 800
+    altura = 800
     window = glfw.create_window(base, altura, "bolas se colidindo", None, None)
     glfw.make_context_current(window)
     glfw.set_key_callback(window, keyboard)

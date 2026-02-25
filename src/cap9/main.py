@@ -4,18 +4,18 @@ import OpenGL.GL.shaders as gls
 from bastao import *
 import glm
 
-obj = []
+objects = []
 shaderId = 0
-ang = 0
+mat_loc = None
 
 def init():
-    global obj, shaderId
-    for i in range(10):
-        x = np.random.uniform(-0.8, 0.8)
-        y = np.random.uniform(-0.8, 0.8)
+    global objects, shaderId, mat_loc
+    for i in range(1):
+        base = np.random.uniform(-0.8, 0.8)
+        altura = np.random.uniform(-0.8, 0.8)
         r, g, b = np.random.random(3)
-        body = Bastao(x, y, cor=(r, g, b))
-        obj.append(body)
+        body = Bastao(base, altura, cor=(r, g, b))
+        objects.append(body)
 
     glClearColor(1, 1, 1, 1)
     glLineWidth(1)
@@ -28,17 +28,15 @@ def init():
     fsId = gls.compileShader(fsSource, GL_FRAGMENT_SHADER)
     shaderId = gls.compileProgram(vsId, fsId)
 
-def render():
-    global ang
+    mat_loc = glGetUniformLocation(shaderId, "ModelMatrix")
 
+def render():
     glClear(GL_COLOR_BUFFER_BIT)
 
-    ang += 1
-
     glUseProgram(shaderId)
-    for i in range(10):
-        T = glm.translate(glm.vec3(np.sin(np.radians(ang + i*10))/2, 0.0, 0.0))
-        obj[i].render(shaderId=shaderId, ModelMatrix=glm.value_ptr(T))
+    for obj in objects:
+        obj.update()
+        obj.render(shaderId)
     glUseProgram(0)
 
 def keyboard(window, key, scancode, action, mods):
