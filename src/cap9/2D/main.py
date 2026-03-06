@@ -3,6 +3,8 @@ from OpenGL.GL import *
 import OpenGL.GL.shaders as gls
 from bastao import *
 import glm
+import os
+import time
 
 objects = []
 shaderId = 0
@@ -21,22 +23,21 @@ def init():
     glClearColor(1, 1, 1, 1)
     glLineWidth(1)
 
-    with open (r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\cap9\shaders\vertexShaders.glsl") as file:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    SHADER_DIR = os.path.join(BASE_DIR, "shaders")
+
+    with open(os.path.join(SHADER_DIR, "vertexShaders.glsl"), "r", encoding="utf-8") as file:
         vsSource = file.read()
-    with open (r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\cap9\shaders\fragmentShaders.glsl") as file:
+
+    with open(os.path.join(SHADER_DIR, "fragmentShaders.glsl"), "r", encoding="utf-8") as file:
         fsSource = file.read()
+        
     vsId = gls.compileShader(vsSource, GL_VERTEX_SHADER)
     fsId = gls.compileShader(fsSource, GL_FRAGMENT_SHADER)
     shaderId = gls.compileProgram(vsId, fsId)
 
     mat_loc = glGetUniformLocation(shaderId, "ModelMatrix")
 
-def render():
-    glClear(GL_COLOR_BUFFER_BIT)
-
-    for obj in objects:
-        obj.update()
-        obj.render(shaderId)
 
 def keyboard(window, key, scancode, action, mods):
     if action == glfw.PRESS:
@@ -78,13 +79,31 @@ def main():
 
     init()
 
+    obj = objects[0]
+    dt_fisica = 1.0 / 120.0
+    acumulador = 0.0
+    tempo_anterior = glfw.get_time()
+
     while not glfw.window_should_close(window):
         glfw.poll_events()
-        render()
+
+        tempo_atual = glfw.get_time()
+        frame_time = tempo_atual - tempo_anterior
+        tempo_anterior = tempo_atual
+        
+        if frame_time > 0.1: frame_time = 0.1
+        acumulador += frame_time
+
+        while acumulador >= dt_fisica:
+            obj.update(dt_fisica)
+            acumulador -= dt_fisica
+        
+        glClear(GL_COLOR_BUFFER_BIT)
+        obj.render(shaderId)
+        
         glfw.swap_buffers(window)
 
     glfw.terminate()
-
 
 if __name__ == "__main__":
     main()

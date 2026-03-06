@@ -4,6 +4,7 @@ from quadtree import *
 from OpenGL.GL import *
 import OpenGL.GL.shaders as gls
 import numpy
+import os
 
 bolas = []
 shaderId = 0
@@ -12,7 +13,7 @@ mat_loc = None
 def init():
     global bolas, shaderId, mat_loc
 
-    for i in range(1000):
+    for i in range(300):
         r, g, b = np.random.random(3)
         # Cria a bola (geometria centrada)
         bola = Bola(raio=0.02, cor=(r, g, b))
@@ -25,9 +26,13 @@ def init():
 
     glClearColor(1, 1, 1, 1)
     
-    with open (r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\apoio\colisoes\tudo\shaders\vertexShaders.glsl") as file:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    SHADER_DIR = os.path.join(BASE_DIR, "shaders")
+
+    with open(os.path.join(SHADER_DIR, "vertexShaders.glsl"), "r", encoding="utf-8") as file:
         vsSource = file.read()
-    with open (r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\apoio\colisoes\tudo\shaders\fragmentShaders.glsl") as file:
+
+    with open(os.path.join(SHADER_DIR, "fragmentShaders.glsl"), "r", encoding="utf-8") as file:
         fsSource = file.read()
     vsId = gls.compileShader(vsSource, GL_VERTEX_SHADER)
     fsId = gls.compileShader(fsSource, GL_FRAGMENT_SHADER)
@@ -97,6 +102,8 @@ def render():
         glBindVertexArray(bola.vaoId)
         glDrawArrays(GL_TRIANGLE_FAN, 0, bola.qtdVertices)
     glUseProgram(0)
+
+    qTree.show()
     
     
 

@@ -108,8 +108,8 @@ class Retangulo:
         if norm > 0:
             self.state[1] = q / norm
 
-    def Matrix2Quaternion(self):
-        pass
+    # def Matrix2Quaternion(self):
+    #     pass
 
     def resolveCollision(self):
 

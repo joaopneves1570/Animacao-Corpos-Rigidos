@@ -2,6 +2,7 @@ import glfw
 from OpenGL.GL import *
 import numpy as np
 from math import sin, cos, pi
+import matplotlib.pyplot as plt
 
 class App:
     def __init__(self):
@@ -91,6 +92,8 @@ class SimpleFall(Circle):
         self.v0x, self.v0y = v0x, v0y
         self.ax, self.ay = ax, ay
         self.last_time = glfw.get_time()
+        self.history_x = []
+        self.history_y = []
         
     def update(self):
         current_time = glfw.get_time()
@@ -106,6 +109,11 @@ class SimpleFall(Circle):
             self.vy = -self.vy* 0.5
             self.v0y = -self.v0y * 0.5
 
+        self.history_x.append(self.x)
+        self.history_y.append(self.y)
+
+    
+
 class HorizontalFall(Circle):
     def __init__(self, center: tuple, radius: float, color: tuple, v0x: float, v0y: float, ax: float, ay: float):
         super().__init__(center, radius, color)
@@ -114,6 +122,8 @@ class HorizontalFall(Circle):
         self.v0x, self.v0y = v0x, v0y
         self.ax, self.ay = ax, ay
         self.last_time = glfw.get_time()
+        self.history_x = []
+        self.history_y = []
         
     def update(self):
         current_time = glfw.get_time()
@@ -138,6 +148,10 @@ class HorizontalFall(Circle):
             self.vx = 0.0
             self.ax = 0.0
 
+        self.history_x.append(self.x)
+        self.history_y.append(self.y)
+
+
 class AirWindResistanceFall(Circle):
     def __init__(self, center: tuple, radius: float, color: tuple, v0x: float, v0y: float, ax: float, ay: float, d: float):
         super().__init__(center, radius, color)
@@ -150,6 +164,9 @@ class AirWindResistanceFall(Circle):
         self.m = 1
 
         self.last_time = glfw.get_time()
+
+        self.history_x = []
+        self.history_y = []
         
     def update(self):
         current_time = glfw.get_time()
@@ -175,6 +192,9 @@ class AirWindResistanceFall(Circle):
             self.x = -0.8
             self.ax = 0.0
             self.d = 0.0
+
+        self.history_x.append(self.x)
+        self.history_y.append(self.y)
             
             
 
@@ -189,3 +209,15 @@ if __name__ == '__main__':
     Main.add_object(bola2)
     Main.add_object(bola3)
     Main.main_loop()
+
+
+    plt.figure(figsize=(8,6))
+    plt.plot(bola1.history_x, bola1.history_y, label="Trajetória da bola de queda simples", color="orange")
+    plt.plot(bola2.history_x, bola2.history_y, label="Trajetória da bola em lançamento horizontal", color="red")
+    plt.plot(bola3.history_x, bola3.history_y, label="Trajetória da bola com força de arrasto do ar", color="purple")
+    plt.title("Trajetória de queda")
+    plt.xlabel("Posição x")
+    plt.ylabel("Posição y")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
