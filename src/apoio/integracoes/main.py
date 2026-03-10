@@ -1,223 +1,105 @@
 import glfw
-from OpenGL.GL import *
 import numpy as np
-from math import sin, cos, pi
+from OpenGL.GL import *
+import OpenGL.GL.shaders as gls
+import glm
+import os
+from bola import *
 import matplotlib.pyplot as plt
 
-class App:
-    def __init__(self):
+base = 800
+altura = 600
 
-        if not glfw.init():
-            raise Exception("glfw can not be initialized!")
-        
-        #cria a janela
-        self._window = glfw.create_window(1000, 1000, "Minha janela OpenGl", None, None)
+shaderId = 0
+obj = None
+mat_loc = None
 
-        #verifica se foi criada sem problemas
-        if not self._window:
-            glfw.terminate()
-            raise Exception("glfw window can not be created!")
-        
-        #seta a posição da janela
-        glfw.set_window_pos(self._window, 450, 35)
+posicoes_x = []
+posicoes_y = []
 
-        #cria o contexto para rodar OpenGl (máquina de estado que guarda os dados relacionados a rendereização da aplicação)
-        glfw.make_context_current(self._window)
-
-        #seta a cor inicial da janela
-        glClearColor(1.0, 1.0, 1.0, 1)
-
-        #lista de objetos desenhados
-        self._objects = []
-
-    def add_object(self, obj):
-        self._objects.append(obj)
+def init():
+    global shaderId, objects, mat_loc, obj
+    pos0 = np.array([-0.8, 0.8, 0.0])
+    vel0 = np.array([0.4, 0.0, 0.0])
+    resistencia = True
+    vento = True
+    obj = Bola(pos0, vel0, resistencia, vento, raio=0.05, nDiv=64, cor=(1, 0, 0))
     
-    def main_loop(self):
+    glClearColor(1, 1, 1, 1)
 
-        #window_should_close -> variavel que vira true quando clica no x da janela
-        while not glfw.window_should_close(self._window):
-            glfw.poll_events()  #trata eventos, clique no x da janela é considerado um evento
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    SHADER_DIR = os.path.join(BASE_DIR, "shaders")
 
-            glClear(GL_COLOR_BUFFER_BIT)
+    with open(os.path.join(SHADER_DIR, "vertexShaders.glsl"), "r", encoding="utf-8") as file:
+        vsSource = file.read()
 
-            for obj in self._objects:
-                obj.update()
-                glPushMatrix()
-                glTranslatef(obj.x, obj.y, 0.0)
-                obj.draw()
-                glPopMatrix()
-
-
-            glfw.swap_buffers(self._window)
-
-        #encerra o glfw
-        glfw.terminate()
-
-
-class Circle:
-    def __init__(self, center, radius, color, num_segments=2000):
-        cx, cy = center
-        self._color = np.array(color, dtype=np.float32)
-
-        # gera os vértices (centro + circunferência)
-        vertices = [[0.0, 0.0, 0.0]]
-        for i in range(num_segments + 1):
-            angle = 2 * pi * i / num_segments
-            x = radius * cos(angle)
-            y = radius * sin(angle)
-            vertices.append([x, y, 0.0])
-
-        self._vertices = np.array(vertices, dtype=np.float32)
-
-    def draw(self):
-        glEnableClientState(GL_VERTEX_ARRAY)
-        glEnableClientState(GL_COLOR_ARRAY)
-
-        # todas as cores iguais (uma pra cada vértice)
-        colors = np.tile(self._color, (len(self._vertices), 1))
-        glVertexPointer(3, GL_FLOAT, 0, self._vertices)
-        glColorPointer(3, GL_FLOAT, 0, colors)
-
-        glDrawArrays(GL_TRIANGLE_FAN, 0, len(self._vertices))
-
-        glDisableClientState(GL_VERTEX_ARRAY)
-        glDisableClientState(GL_COLOR_ARRAY)
-
-class SimpleFall(Circle):
-    def __init__(self, center: tuple, radius: float, color: tuple, v0x: float, v0y: float, ax: float, ay: float):
-        super().__init__(center, radius, color)
-        self.x, self.y = center
-        self.vx, self.vy = v0x, v0y
-        self.v0x, self.v0y = v0x, v0y
-        self.ax, self.ay = ax, ay
-        self.last_time = glfw.get_time()
-        self.history_x = []
-        self.history_y = []
+    with open(os.path.join(SHADER_DIR, "fragmentShaders.glsl"), "r", encoding="utf-8") as file:
+        fsSource = file.read()
         
-    def update(self):
-        current_time = glfw.get_time()
-        t = current_time - self.last_time
-        self.last_time = current_time
+    vsId = gls.compileShader(vsSource, GL_VERTEX_SHADER)
+    fsId = gls.compileShader(fsSource, GL_FRAGMENT_SHADER)
+    shaderId = gls.compileProgram(vsId, fsId)
 
-        self.vy = self.vy + self.ay*t
-        self.y = self.y + ((self.vy + self.v0y)/2)*t
-        self.v0y = self.vy
+    mat_loc = glGetUniformLocation(shaderId, "ModelMatrix")
 
-        if self.y <= 0.35:
-            self.y = 0.35
-            self.vy = -self.vy* 0.5
-            self.v0y = -self.v0y * 0.5
+def render(window):
+    dt_fisica = 1.0 / 60.0
+    acumulador = 0.0
+    tempo_anterior = glfw.get_time()
 
-        self.history_x.append(self.x)
-        self.history_y.append(self.y)
+    while not glfw.window_should_close(window):
+        glfw.poll_events()
 
+        tempo_atual = glfw.get_time()
+        frame_time = tempo_atual - tempo_anterior
+        tempo_anterior = tempo_atual
+        
+        if frame_time > 0.1: frame_time = 0.1
+        acumulador += frame_time
+
+        while acumulador >= dt_fisica:
+            obj.update(dt_fisica)
+            posicoes_x.append(obj.get_x())
+            posicoes_y.append(obj.get_y())
+            acumulador -= dt_fisica
+        
+        glClear(GL_COLOR_BUFFER_BIT)
+        obj.render(shaderId)
+        
+        glfw.swap_buffers(window)
+
+def keyboard(window, key, scancode, action, mods):
+    if action == glfw.PRESS:
+        if key == glfw.KEY_ESCAPE:
+            glfw.set_window_should_close(window, True)
+
+def main():
+    if not glfw.init():
+        raise Exception("GLFW não inicializou")
     
-
-class HorizontalFall(Circle):
-    def __init__(self, center: tuple, radius: float, color: tuple, v0x: float, v0y: float, ax: float, ay: float):
-        super().__init__(center, radius, color)
-        self.x, self.y = center
-        self.vx, self.vy = v0x, v0y
-        self.v0x, self.v0y = v0x, v0y
-        self.ax, self.ay = ax, ay
-        self.last_time = glfw.get_time()
-        self.history_x = []
-        self.history_y = []
-        
-    def update(self):
-        current_time = glfw.get_time()
-        t = current_time - self.last_time
-        self.last_time = current_time
-
-        self.vx = self.vx + self.ax*t
-        self.x = self.x + ((self.vx + self.v0x)/2)*t
-        self.v0x = self.vx
-
-        self.vy = self.vy + self.ay*t
-        self.y = self.y + ((self.vy + self.v0y)/2)*t
-        self.v0y = self.vy
-
-        if self.y <= -0.25:
-            self.y = -0.25
-            self.vy = -self.vy * 0.5
-            self.v0y = -self.v0y * 0.5
-            
-        if self.x >= 0.9:
-            self.x = 0.9
-            self.vx = 0.0
-            self.ax = 0.0
-
-        self.history_x.append(self.x)
-        self.history_y.append(self.y)
-
-
-class AirWindResistanceFall(Circle):
-    def __init__(self, center: tuple, radius: float, color: tuple, v0x: float, v0y: float, ax: float, ay: float, d: float):
-        super().__init__(center, radius, color)
-        self.x, self.y = center
-        self.vx, self.vy = v0x, v0y
-        self.v0x, self.v0y = v0x, v0y
-        self.ax, self.ay = ax, ay
-
-        self.d = d
-        self.m = 1
-
-        self.last_time = glfw.get_time()
-
-        self.history_x = []
-        self.history_y = []
-        
-    def update(self):
-        current_time = glfw.get_time()
-        t = current_time - self.last_time
-        self.last_time = current_time
-
-        self.ax = self.ax - (self.d/self.m)*(self.vx**2)
-        self.vx = self.vx + self.ax*t
-        self.x = self.x + ((self.vx + self.v0x)/2)*t
-        self.v0x = self.vx
-
-        self.ay = self.ay - (self.d/self.m)*(self.vy**2)
-        self.vy = self.vy + self.ay*t
-        self.y = self.y + ((self.vy + self.v0y)/2)*t
-        self.v0y = self.vy
-
-        if self.y <= -0.85:
-            self.y = -0.85
-            self.vy = -self.vy * 0.5
-            self.v0y = -self.v0y * 0.5
-            
-        if self.x <= -0.8:
-            self.x = -0.8
-            self.ax = 0.0
-            self.d = 0.0
-
-        self.history_x.append(self.x)
-        self.history_y.append(self.y)
-            
-            
-
-if __name__ == '__main__':
-    Main = App()
+    window = glfw.create_window(base, altura, "Integrações", None, None)
+    if not window:
+        raise Exception("Não foi possível criar a janela")
     
-    bola1 = SimpleFall((-0.8, 0.9), (0.03), (0.8, 0.4, 0.0), 0.0, 0.0, 0.0, -1.0)
-    bola2 = HorizontalFall((-0.8, 0.3), (0.03), (1.0, 0.0, 0.0), 1.0, 0.0, 0.0, -1.0)
-    bola3 = AirWindResistanceFall((-0.8, -0.3), (0.03), (0.6, 0.0, 1.0), 1.0, 0.0, 0.0, -1.0, 0.055)
+    glfw.make_context_current(window)
+    glfw.set_key_callback(window, keyboard)
 
-    Main.add_object(bola1)
-    Main.add_object(bola2)
-    Main.add_object(bola3)
-    Main.main_loop()
-
+    init()
+    render(window)
 
     plt.figure(figsize=(8,6))
-    plt.plot(bola1.history_x, bola1.history_y, label="Trajetória da bola de queda simples", color="orange")
-    plt.plot(bola2.history_x, bola2.history_y, label="Trajetória da bola em lançamento horizontal", color="red")
-    plt.plot(bola3.history_x, bola3.history_y, label="Trajetória da bola com força de arrasto do ar", color="purple")
-    plt.title("Trajetória de queda")
+    plt.plot(posicoes_x, posicoes_y, label="Trajetória")
+    plt.title("Gráfico da trajetória da partícula")
     plt.xlabel("Posição x")
     plt.ylabel("Posição y")
-    plt.legend()
     plt.grid(True)
+    plt.legend()
     plt.show()
+
+    glfw.terminate()
+
+
+
+
+if __name__ == "__main__":
+    main()

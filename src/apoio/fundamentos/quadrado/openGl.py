@@ -1,9 +1,9 @@
 import glfw
 from OpenGL.GL import *
+from shader import *
 import OpenGL.GL.shaders as gls
 import numpy as np
 import ctypes
-from apoio.fundamentos.quadrado.shader import *
 
 vertices = [
     [-0.8, -0.8],   #v0
@@ -72,8 +72,8 @@ def init():
 
     # criar shaders
     myShader = Shader(
-        r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\apoio\fundamentos\quadrado\shaders\vertexShader.glsl",
-        r"C:\Users\JP\Documents\USP\BCC\Animacao-Corpos-Rigidos\src\apoio\fundamentos\quadrado\shaders\vertexShader.glsl"
+        r"/home/neves/Documentos/Animacao-Corpos-Rigidos/src/apoio/fundamentos/quadrado/shaders/vertexShader.glsl",
+        r"/home/neves/Documentos/Animacao-Corpos-Rigidos/src/apoio/fundamentos/quadrado/shaders/fragmentShader.glsl"
     )
 
 #Atualizar a renderização da cena
@@ -102,7 +102,7 @@ def main():
     if not glfw.init():
         raise Exception("GLFW não foi inicializado")
     
-    window = glfw.create_window(800, 600, "Capítulo 9", None, None)
+    window = glfw.create_window(800, 600, "Quadrado", None, None)
     if not window:
         glfw.terminate()
         raise Exception("Janela não foi criada")

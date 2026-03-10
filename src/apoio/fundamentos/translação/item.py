@@ -11,6 +11,7 @@ class Item:
             x = cx + np.cos(angle)*raio
             y = cy + np.sin(angle)*raio
             vertices.append([x, y, 1, 0, 0])
+        
 
         self.qtdVertices = len(vertices)
         vertices = np.array(vertices, dtype=np.float32)
