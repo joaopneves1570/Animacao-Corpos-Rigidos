@@ -68,7 +68,7 @@ def main():
     if not glfw.init():
         raise Exception("glfw não iniciou")
     
-    window = glfw.create_window(800, 800, "Corpos rígidos 2D", None, None)
+    window = glfw.create_window(800, 600, "Corpos rígidos 2D", None, None)
     if not window:
         raise Exception("Janela não criou")
 

@@ -7,7 +7,7 @@ import numpy as np
 import os
 
 largura = 800
-altura = 800
+altura = 600
 shaderId = 0
 objects = []
 chao = None
