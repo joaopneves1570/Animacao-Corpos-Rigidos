@@ -130,8 +130,8 @@ def keyboard(window, key, scancode, action, mods):
 def main():
     global NUM_BOLAS, hist_comparacoes, comparacoes_frame, hist_n_bolas
     glfw.init()
-    base = 1200
-    altura = 1200
+    base = 800
+    altura = 600
     window = glfw.create_window(base, altura, f"Simulação - QuadTree: {USAR_QUADTREE}", None, None)
     glfw.make_context_current(window)
     glfw.set_key_callback(window, keyboard)
