@@ -78,16 +78,16 @@ class Main:
         mesh_cubo = Mesh("objs/cubo.obj", cor=(1.0, 0.0, 0.0))
         mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
 
-        pos_inicial_esfera = np.zeros(3)
+        pos_inicial_esfera = (0, 0, 5)
         esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=2.0)
+        velocidade_ini = np.array([0.0, 0.0, -5.0], dtype=np.float32)
+        esfera.state[2] = esfera.massa * velocidade_ini
         
         self.fisicaMundo.addBody(esfera)
         self.entidades.append(Entity(esfera, mesh_esfera))
 
         for i in range(self.qtd_corpos):
-            pos_aleatoria = np.random.uniform(-5.0, 5.0, 2)
-            
-            pos_inicial = np.array([pos_aleatoria[0], pos_aleatoria[1], 0.0], dtype=np.float32)
+            pos_inicial = (0, 0, -2*i)
             body = RigidBody("objs/cubo.obj", pos_inicial, massa=2.0)
             
             self.fisicaMundo.addBody(body)
