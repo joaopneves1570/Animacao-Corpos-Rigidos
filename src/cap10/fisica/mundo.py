@@ -5,7 +5,7 @@
 """
 
 from rtree import index     #Biblioteca de R-tree pronta
-from colisao import *
+from .colision import *
 
 class FisicaMundo:
     def __init__(self):
@@ -46,7 +46,12 @@ class FisicaMundo:
                 if j <= i:
                     continue
 
+                # ... [código anterior do R-tree no mundo.py] ...
                 body_b = self.bodies[j]
 
-                if self.colisao.colide(body_a, body_b):
-                    self.colisao.resolve(body_a, body_b)
+                # Agora a função colide retorna os dados que precisamos!
+                houve_colisao, normal, ponto_contato = self.colisao.colide(body_a, body_b)
+
+                if houve_colisao:
+                    # Passamos os corpos e as informações geométricas para aplicar as forças
+                    self.colisao.resolve(body_a, body_b, normal, ponto_contato)

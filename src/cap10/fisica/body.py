@@ -7,6 +7,7 @@ class RigidBody:
         
         # Carrega o modelo usando trimesh por que ele já calcula momento de inércia sozinho
         malha = trimesh.load(obj_path, force='mesh')
+        self.vertices = np.array(malha.vertices, dtype=np.float64) 
         
         # O trimesh calcula o momento de inércia assumindo densidade=1.
         # Multiplica pela massa para ter o Tensor de Inércia real (I0).
@@ -129,3 +130,13 @@ class RigidBody:
         r = ponto - self.state[0]
         
         return v + np.cross(w, r)
+    
+    def getBound(self):
+        """Retorna a AABB (bounding box) no espaço do mundo para a R-tree."""
+        R    = self.quaternion2Matrix(self.state[1])
+        pos  = self.state[0]
+        verts_mundo = (R @ self.vertices.T).T + pos
+        mins = verts_mundo.min(axis=0)
+        maxs = verts_mundo.max(axis=0)
+        # R-tree 3D espera (minx, miny, minz, maxx, maxy, maxz)
+        return (mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2])
