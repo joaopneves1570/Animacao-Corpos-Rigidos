@@ -15,7 +15,7 @@ class Mesh():
         normais = np.array(malha.vertex_normals, dtype=np.float32)
 
         # Cores do objeto
-        cores = np.tile(np.array(cor, dtype=np.float32), (len(vertices_pos), 1))
+        cores = np.tile(cor, (len(vertices_pos), 1))
 
         # np.hstack junta as colunas de posicao + normais + cores
         # .flatten() transforma tudo em uma matriz 1d gigante

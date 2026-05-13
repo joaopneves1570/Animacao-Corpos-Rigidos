@@ -10,7 +10,7 @@ from .colision import *
 class FisicaMundo:
     def __init__(self):
         self.bodies = []
-        self.colisao = Colision()
+        self.colisao = Colision(0.5)
 
     def addBody(self, body):
         # Adiciona um RigidBody a simulação
@@ -18,11 +18,6 @@ class FisicaMundo:
 
     def step(self, dt):
         
-        # INTEGRAÇÃO (Movimento)
-        # Primeiro, movemos todos os objetos baseados em suas velocidades atuais.
-        for body in self.bodies:
-            body.update(dt)
-
         # ==========================================
         # DETECÇÃO E RESOLUÇÃO DE COLISÕES
         # ==========================================
@@ -46,12 +41,23 @@ class FisicaMundo:
                 if j <= i:
                     continue
 
-                # ... [código anterior do R-tree no mundo.py] ...
                 body_b = self.bodies[j]
 
-                # Agora a função colide retorna os dados que precisamos!
                 houve_colisao, normal, ponto_contato = self.colisao.colide(body_a, body_b)
 
                 if houve_colisao:
-                    # Passamos os corpos e as informações geométricas para aplicar as forças
                     self.colisao.resolve(body_a, body_b, normal, ponto_contato)
+
+        for body in self.bodies:
+            houve, normal, ponto, penetracao = self.colisao.colide_chao(body)
+
+            if houve:
+                self.colisao.resolve_chao(body, normal, ponto, penetracao)
+
+                if body.state[2][1] < 0:
+                    body.state[2][1] = 0
+
+        # INTEGRAÇÃO (Movimento)
+        # Primeiro, movemos todos os objetos baseados em suas velocidades atuais.
+        for body in self.bodies:
+            body.update(dt)

@@ -2,8 +2,12 @@ import numpy as np
 import trimesh
 
 class RigidBody:
-    def __init__(self, obj_path, pos_inicial, massa=2.0):
+    def __init__(self, obj_path, pos_inicial, massa=2.0, gravidade= False):
         self.massa = massa
+        self.gravidade = 0.0
+        if gravidade:
+            self.gravidade = -9.8 * self.massa
+
         
         # Carrega o modelo usando trimesh por que ele já calcula momento de inércia sozinho
         malha = trimesh.load(obj_path, force='mesh')
@@ -36,9 +40,6 @@ class RigidBody:
             np.zeros(3)     # Vai ser o Torque
         ]
 
-    # ==========================================
-    # MATEMÁTICA DE QUATERNIONS
-    # ==========================================
     def multQuaternions(self, q1, q2):
         w1, x1, y1, z1 = q1
         w2, x2, y2, z2 = q2
@@ -62,9 +63,6 @@ class RigidBody:
             [2*x*z - 2*w*y,     2*y*z + 2*w*x,     1 - 2*x**2 - 2*y**2]
         ], dtype=np.float32)
 
-    # ==========================================
-    # MOTOR DE FÍSICA (Integração)
-    # ==========================================
     def computeDerivatives(self):
         """Calcula a taxa de variação (velocidade) para o frame atual."""
 
@@ -84,7 +82,7 @@ class RigidBody:
         
         # Derivadas dos Momentos (Forças e Torques contínuos)
         # Os objetos movem-se apenas por inércia ou impulsos instantâneos (colisões).
-        self.stateDerivative[2] = np.zeros(3, dtype=np.float32)
+        self.stateDerivative[2] = np.array([0.0, self.gravidade, 0.0])
         self.stateDerivative[3] = np.zeros(3, dtype=np.float32)
 
         return self.stateDerivative
@@ -101,9 +99,6 @@ class RigidBody:
         
         self.normalize() # Evita que erros de arredondamento distorçam a rotação
 
-    # ==========================================
-    # INTERFACE PARA OS GRÁFICOS E COLISÕES
-    # ==========================================
     def get_model_matrix(self):
         """Gera a matriz 4x4 que será enviada para o OpenGL através da Entity."""
         R = self.quaternion2Matrix(self.state[1])
