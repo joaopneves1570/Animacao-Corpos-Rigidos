@@ -80,7 +80,7 @@ class Main:
 
         pos_inicial_esfera = (0, 0, 20)
         esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=20.0, gravidade=True)
-        velocidade_ini = np.array([0.0, 0.0, -30.0], dtype=np.float32)
+        velocidade_ini = np.array([0.0, 0.0, -10.0], dtype=np.float32)
         velocidade_ang_ini = np.array([-5.0, 0.0, 0.0], dtype=np.float32)
         esfera.state[2] = esfera.massa * velocidade_ini
         esfera.state[3] = esfera.Io @ velocidade_ang_ini
