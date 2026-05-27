@@ -148,3 +148,35 @@ class Colision:
         impulso = j * normal
 
         body.apply_impulse(impulso, ponto_contato)
+
+    def verifica_colisao_ponto_face(self, ponto, vertices, faces):
+
+        P = np.array(ponto, dtype=np.float32)
+        V = np.array(vertices, dtype=np.float32)
+
+        sinal_referencia = None
+        epsilon = 1e-6
+
+        for face in faces:
+            A = V[face[0]]
+            B = V[face[1]]
+            C = V[face[2]]
+
+            normal = np.cross(B-A, C-A)
+
+            escalar = np.dot(normal, P-A)
+
+            if abs(escalar) < epsilon:
+                continue
+
+            sinal_atual = np.sign(escalar)
+
+            if sinal_referencia is None:
+                sinal_referencia = sinal_atual
+            else:
+                if sinal_atual != sinal_referencia:
+                    return False
+                
+        return True
+
+

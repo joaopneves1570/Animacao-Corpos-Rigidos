@@ -76,22 +76,27 @@ class Main:
         # Instanciando as classes body e mesh para fazer as entidades da cena
 
         mesh_cubo = Mesh("objs/cubo.obj", cor=(1.0, 0.0, 0.0))
-        #mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
+        mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
 
-        # pos_inicial_esfera = (0, 0, 20)
-        # esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=10.0)
-        # velocidade_ini = np.array([0.0, 0.0, -10.0], dtype=np.float32)
-        # esfera.state[2] = esfera.massa * velocidade_ini
+        pos_inicial_esfera = (0, 0, 20)
+        esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=10.0)
+        velocidade_ini = np.array([0.0, 0.0, -10.0], dtype=np.float32)
+        esfera.state[2] = esfera.massa * velocidade_ini
         
-        # self.fisicaMundo.addBody(esfera)
-        # self.entidades.append(Entity(esfera, mesh_esfera))
+        self.fisicaMundo.addBody(esfera)
+        self.entidades.append(Entity(esfera, mesh_esfera))
 
-        for i in range(2):
-            pos_inicial = (0.5*i, 2*i, 0)
+        blocos_horizontal = 10  # Largura da parede (eixo X)
+        blocos_vertical = 5     # Altura da parede (eixo Y)
+        espacamento = 1.0       
 
-            body = RigidBody("objs/cubo.obj", pos_inicial, massa = 2.0, gravidade=True)
-            self.fisicaMundo.addBody(body)
-            self.entidades.append(Entity(body, mesh_cubo))
+        for x in range(blocos_horizontal):
+            for y in range(blocos_vertical):
+                pos_inicial = (x * espacamento, y * espacamento, 0.0)
+
+                body = RigidBody("objs/cubo.obj", pos_inicial, massa=2.0, gravidade=False)
+                self.fisicaMundo.addBody(body)
+                self.entidades.append(Entity(body, mesh_cubo))
 
     def run(self):
         self.setupCena()
