@@ -10,33 +10,40 @@ class Colision:
 
     def colide(self, body_a, body_b):
         """
-        Narrow Phase: Verifica se há intersecção real.
-        Para simplificar e manter o motor rodando, usaremos Bounding Spheres baseadas na AABB.
-        Retorna: (Houve_Colisao, Normal_da_Colisao, Ponto_de_Contato)
+        Narrow Phase: melhorada, utiliza volume de tetraedros pra verificar divergências de sinais
+        e assim apontar com mais precisão a colisão
         """
+        R_a = body_a.quaternion2Matrix(body_a.state[1])
         pos_a = body_a.state[0]
+        vertices_mundo_a = (R_a @ body_a.vertices.T).T + pos_a
+        vertices_unicos_a = np.unique(vertices_mundo_a, axis=0)
+        faces_a = body_a.faces
+        
+        R_b = body_b.quaternion2Matrix(body_b.state[1])
         pos_b = body_b.state[0]
-        
-        # Pega a diagonal da Bounding Box para estimar um raio (Simplificação)
-        bounds_a = body_a.getBound()
-        bounds_b = body_b.getBound()
-        raio_a = np.linalg.norm(np.array(bounds_a[3:]) - np.array(bounds_a[:3])) / 4.0
-        raio_b = np.linalg.norm(np.array(bounds_b[3:]) - np.array(bounds_b[:3])) / 4.0
-        
-        dist_vec = pos_b - pos_a
-        dist = np.linalg.norm(dist_vec)
-        
-        # Se a distância entre os centros for menor que a soma dos raios, colidiu
-        if dist < (raio_a + raio_b) and dist > 0.0001:
-            normal = dist_vec / dist
-            
-            # Ponto de contato aproximado (na superfície do corpo A)
-            ponto_contato = pos_a + normal * raio_a
-            
-            return True, normal, ponto_contato
-            
+        vertices_mundo_b = (R_b @ body_b.vertices.T).T + pos_b
+        vertices_unicos_b = np.unique(vertices_mundo_b, axis=0)
+        faces_b = body_b.faces
+
+        normal = None
+
+        for va in vertices_unicos_a:
+            va_local = R_b.T @ (va - pos_b)
+            if body_b.hull.contains([va_local])[0]:
+                print("Colidiu")
+                normal = self.achar_normal_colisao(va, vertices_mundo_b, faces_b)
+                return True, normal, va
+
+        for vb in vertices_unicos_b:
+            vb_local = R_a.T @ (vb - pos_a)
+            if body_a.hull.contains([vb_local])[0]:
+                normal = self.achar_normal_colisao(vb, vertices_mundo_a, faces_a)
+                print("Colidiu") 
+                return True, normal, vb
+                    
         return False, None, None
-    
+            
+        
     def colide_chao(self, body, plano=0.0):
         R = body.quaternion2Matrix(body.state[1])
         pos = body.state[0]
@@ -149,34 +156,71 @@ class Colision:
 
         body.apply_impulse(impulso, ponto_contato)
 
-    def verifica_colisao_ponto_face(self, ponto, vertices, faces):
+
+    def V_sinal(self, A, B, C, P):
+
+        return np.dot(A-P, np.cross(B-P, C-P))
+    
+    def ponto_dentro_solido(self, ponto, vertices, faces):
 
         P = np.array(ponto, dtype=np.float32)
         V = np.array(vertices, dtype=np.float32)
 
         sinal_referencia = None
-        epsilon = 1e-6
+        menor = float('inf')
+        normal = None
 
         for face in faces:
             A = V[face[0]]
             B = V[face[1]]
             C = V[face[2]]
 
-            normal = np.cross(B-A, C-A)
+            valor = self.V_sinal(A, B, C, P)
 
-            escalar = np.dot(normal, P-A)
+            if abs(valor) < menor:
+                menor = abs(valor)
+                normal = np.cross(B-A, C-A)
 
-            if abs(escalar) < epsilon:
-                continue
+            sinal_atual = np.sign(valor)
 
-            sinal_atual = np.sign(escalar)
+            if sinal_atual == 0:
+                return False, None
 
             if sinal_referencia is None:
                 sinal_referencia = sinal_atual
             else:
                 if sinal_atual != sinal_referencia:
-                    return False
+                    return False, None
                 
-        return True
+        norma = np.linalg.norm(normal)
+        normal = normal / norma
+        
+        return True, normal
+    
+    def achar_normal_colisao(self, ponto, vertices, faces):
+        
+        P = np.array(ponto, dtype=np.float32)
+        V = np.array(vertices, dtype=np.float32)
 
+        menor = float('inf')
+        normal = None
 
+        for face in faces:
+            A = V[face[0]]
+            B = V[face[1]]
+            C = V[face[2]]
+
+            normal_face = np.cross(C-A, B-A)
+            norma = np.linalg.norm(normal_face)
+            normal_unit = normal_face / norma
+            valor = abs(np.dot(P-A, normal_unit))
+            
+            if abs(valor) < menor:
+                menor = abs(valor)
+                normal = np.cross(B-A, C-A)
+                
+        norma = np.linalg.norm(normal)
+        normal = normal / norma
+       
+        
+        return -normal

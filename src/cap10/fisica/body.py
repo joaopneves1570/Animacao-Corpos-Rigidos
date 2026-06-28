@@ -11,11 +11,13 @@ class RigidBody:
         
         # Carrega o modelo usando trimesh por que ele já calcula momento de inércia sozinho
         malha = trimesh.load(obj_path, force='mesh')
-        self.vertices = np.array(malha.vertices, dtype=np.float64) 
+        self.hull = malha.convex_hull
+        self.vertices = np.array(self.hull.vertices, dtype=np.float32)
+        self.faces = np.array(self.hull.faces, dtype=np.int32) 
         
         # O trimesh calcula o momento de inércia assumindo densidade=1.
         # Multiplica pela massa para ter o Tensor de Inércia real (I0).
-        self.Io = malha.moment_inertia * self.massa
+        self.Io = self.hull.moment_inertia * self.massa
         
         # Calculamos a inversa da inércia (necessária para calcular a velocidade angular)
         if np.linalg.det(self.Io) != 0:

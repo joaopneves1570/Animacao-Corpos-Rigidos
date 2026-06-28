@@ -87,8 +87,8 @@ class Main:
         self.entidades.append(Entity(esfera, mesh_esfera))
 
 
-        dx = 2   # Distância horizontal entre pinos na mesma linha
-        dz = 1.2  # Distância vertical (Z) entre as linhas de pinos
+        dx = 3   # Distância horizontal entre pinos na mesma linha
+        dz = 2  # Distância vertical (Z) entre as linhas de pinos
         
         # Ponto de partida do primeiro pino (o pino da frente)
         # Colocamos em Z negativo para ficar à frente da câmera e da esfera
