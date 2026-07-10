@@ -6,7 +6,7 @@ class RigidBody:
         self.massa = massa
         self.gravidade = 0.0
         if gravidade:
-            self.gravidade = -9.8 * self.massa
+            self.gravidade = -0.5 * self.massa
 
         
         # Carrega o modelo usando trimesh por que ele já calcula momento de inércia sozinho

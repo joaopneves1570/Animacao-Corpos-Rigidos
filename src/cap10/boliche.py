@@ -79,8 +79,8 @@ class Main:
         mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
 
         pos_inicial_esfera = (0, 0, 20)
-        esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=20.0, gravidade=True)
-        velocidade_ini = np.array([0.0, 0.0, -10.0], dtype=np.float32)
+        esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=5.0, gravidade=True)
+        velocidade_ini = np.array([0.0, 0.0, -7.5], dtype=np.float32)
         velocidade_ang_ini = np.array([-5.0, 0.0, 0.0], dtype=np.float32)
         esfera.state[2] = esfera.massa * velocidade_ini
         esfera.state[3] = esfera.Io @ velocidade_ang_ini
@@ -113,7 +113,7 @@ class Main:
                 pos_inicial = (pos_x, y_piso, pos_z)
                 
                 # Instancia o corpo físico rígido (usando o modelo do pino)
-                body = RigidBody("objs/cilindro.obj", pos_inicial, massa=5.0, gravidade=True)
+                body = RigidBody("objs/pino_boliche.obj", pos_inicial, massa=1.5, gravidade=True)
                 
                 self.fisicaMundo.addBody(body)
                 self.entidades.append(Entity(body, mesh_pino))

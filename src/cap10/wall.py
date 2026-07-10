@@ -64,7 +64,7 @@ class Main:
         loc_proj = glGetUniformLocation(self.shaderId, "projection")
         glUniformMatrix4fv(loc_proj, 1, GL_FALSE, glm.value_ptr(projection))
 
-        view = glm.lookAt(glm.vec3(10, 5, 15), glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
+        view = glm.lookAt(glm.vec3(0, 5, 20), glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
         loc_view = glGetUniformLocation(self.shaderId, "view")
         glUniformMatrix4fv(loc_view, 1, GL_FALSE, glm.value_ptr(view))
 
@@ -86,13 +86,13 @@ class Main:
         self.fisicaMundo.addBody(esfera)
         self.entidades.append(Entity(esfera, mesh_esfera))
 
-        blocos_horizontal = 10  # Largura da parede (eixo X)
+        blocos_horizontal = 15  # Largura da parede (eixo X)
         blocos_vertical = 5     # Altura da parede (eixo Y)
         espacamento = 1.0       
 
         for x in range(blocos_horizontal):
             for y in range(blocos_vertical):
-                pos_inicial = (x * espacamento, y * espacamento, 0.0)
+                pos_inicial = (x-7 * espacamento, y * espacamento, 0.0)
 
                 body = RigidBody("objs/cubo.obj", pos_inicial, massa=2.0, gravidade=False)
                 self.fisicaMundo.addBody(body)

@@ -10,7 +10,7 @@ from .colision import *
 class FisicaMundo:
     def __init__(self):
         self.bodies = []
-        self.colisao = Colision(0.5)
+        self.colisao = Colision(0.7, 0.3)
 
     def addBody(self, body):
         # Adiciona um RigidBody a simulação

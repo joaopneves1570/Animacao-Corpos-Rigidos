@@ -111,7 +111,7 @@ class Colision:
             return
             
         # 6. Cálculo da magnitude do impulso (j)
-        j = -(1.0 + e) * vel_normal / denominador
+        j = (-(1.0 + e) * vel_normal) / denominador
         
         # O vetor impulso total
         impulso = j * normal
