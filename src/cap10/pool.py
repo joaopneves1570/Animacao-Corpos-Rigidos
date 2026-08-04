@@ -11,7 +11,7 @@ from graficos.mesh import *
 from cena.entity import *
 
 class Main:
-    def __init__(self, qtd_corpos = 5, largura = 800, altura = 600, titulo = "Simulação de uma pista de boliche"):
+    def __init__(self, qtd_corpos = 5, largura = 800, altura = 600, titulo = "Simulação do estouro de uma partida de bilhar"):
         self.largura = largura
         self.altura = altura
         self.titulo = titulo
