@@ -78,8 +78,8 @@ class Main:
         mesh_pino = Mesh("objs/pino_boliche.obj")
         mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
 
-        pos_inicial_esfera = (0, 0.5, 20)
-        esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=5.0)
+        pos_inicial_esfera = (0, 0.0, 20)
+        esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=5.0, gravidade=True)
         velocidade_ini = np.array([0.0, 0.0, -7.5], dtype=np.float32)
         velocidade_ang_ini = np.array([-5.0, 0.0, 0.0], dtype=np.float32)
         esfera.state[2] = esfera.massa * velocidade_ini
