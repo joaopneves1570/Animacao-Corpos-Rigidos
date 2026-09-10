@@ -4,6 +4,8 @@ from OpenGL.GL import *
 import numpy as np
 import glm
 import os
+from PIL import Image
+import subprocess
 
 from fisica.mundo import *
 from fisica.body import *
@@ -11,7 +13,7 @@ from graficos.mesh import *
 from cena.entity import *
 
 class Main:
-    def __init__(self, qtd_corpos = 5, largura = 800, altura = 600, titulo = "Simulação do estouro de uma partida de bilhar"):
+    def __init__(self, qtd_corpos = 5, largura = 800, altura = 600, titulo = "Simulação de uma pista de boliche"):
         self.largura = largura
         self.altura = altura
         self.titulo = titulo
@@ -27,6 +29,8 @@ class Main:
     def _init_glfw(self):
         if not glfw.init():
             raise Exception("Glfw não inicializou")
+
+        glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
         
         self.window = glfw.create_window(self.largura, self.altura, self.titulo, None, None)
         if not self.window:
@@ -64,21 +68,21 @@ class Main:
         loc_proj = glGetUniformLocation(self.shaderId, "projection")
         glUniformMatrix4fv(loc_proj, 1, GL_FALSE, glm.value_ptr(projection))
 
-        view = glm.lookAt(glm.vec3(0, 40, 0), glm.vec3(0, 0, 0), glm.vec3(0, 0, -1))
+        view = glm.lookAt(glm.vec3(0, 15, 30), glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
         loc_view = glGetUniformLocation(self.shaderId, "view")
         glUniformMatrix4fv(loc_view, 1, GL_FALSE, glm.value_ptr(view))
 
         light_pos_loc = glGetUniformLocation(self.shaderId, "lightPos")
         view_pos_loc = glGetUniformLocation(self.shaderId, "viewPos")
-        glUniform3f(light_pos_loc, 5.0, 5.0, 5.0)  
-        glUniform3f(view_pos_loc, 5.0, 5.0, 5.0)
+        glUniform3f(light_pos_loc, 10.0, 10.0, 10.0)  
+        glUniform3f(view_pos_loc, 10.0, 10.0, 10.0)
 
         # Instanciando as classes body e mesh para fazer as entidades da cena
         mesh_esfera = Mesh("objs/esfera.obj", cor=(1.0, 1.0, 1.0))
 
         pos_inicial_esfera = (0, 0, 15)
         esfera = RigidBody("objs/esfera.obj", pos_inicial_esfera, massa=20.0, gravidade=True)
-        velocidade_ini = np.array([0.0, 0.0, -30.0], dtype=np.float32)
+        velocidade_ini = np.array([0.0, 0.0, -5.0], dtype=np.float32)
         velocidade_ang_ini = np.array([-5.0, 0.0, 0.0], dtype=np.float32)
         esfera.state[2] = esfera.massa * velocidade_ini
         esfera.state[3] = esfera.Io @ velocidade_ang_ini
@@ -118,28 +122,24 @@ class Main:
                 self.fisicaMundo.addBody(body)
                 self.entidades.append(Entity(body, mesh_bola))
 
-    def run(self):
+
+    def run(self, duracao_segundos=10, fps=30, output_dir="frames"):
         self.setupCena()
 
         dt_fisica = 1.0 / 60
-        acumulador = 0.0
-        tempo_anterior = glfw.get_time()
+        dt_video = 1.0/fps
+        total_frames = int(duracao_segundos*fps)
 
-        while not glfw.window_should_close(self.window):
+        tempo_simulado = 0.0
+        frame_atual = 0
+
+        while frame_atual < total_frames and not glfw.window_should_close(self.window):
             glfw.poll_events()
-            
-            tempo_atual = glfw.get_time()
-            frame_time = tempo_atual - tempo_anterior
-            tempo_anterior = tempo_atual
 
-            if frame_time > 0.1:
-                frame_time = 0.1
-
-            acumulador += frame_time
-
-            while acumulador >= dt_fisica:
+            tempo_alvo = frame_atual * dt_video
+            while tempo_simulado < tempo_alvo:
                 self.fisicaMundo.step(dt_fisica)
-                acumulador -= dt_fisica
+                tempo_simulado += dt_fisica
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             for entidade in self.entidades:
@@ -147,8 +147,36 @@ class Main:
 
             glfw.swap_buffers(self.window)
 
+            self.save_frame(frame_atual, output_dir)
+            frame_atual += 1
+
+            if frame_atual % 30 == 0:
+                print(f"Quadro {frame_atual}/{total_frames} salvo")
+
         glfw.terminate()
+        print("Geração de quadros concluída")
+
+    def save_frame(self, frame_number, output_dir="frames"):
+        os.makedirs(output_dir, exist_ok=True)
+
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        data = glReadPixels(0, 0, self.largura, self.altura, GL_RGB, GL_UNSIGNED_BYTE)
+
+        image = Image.frombytes("RGB", (self.largura, self.altura), data)
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        image.save(os.path.join(output_dir, f"frame_{frame_number:05d}.png"))
+
+    def gerar_video(self, output_dir="frames", output_file="simulacaoBilhar.mp4", fps=30):
+        subprocess.run([
+            "ffmpeg", "-y",
+            "-framerate", str(fps),
+            "-i", os.path.join(output_dir, "frame_%05d.png"),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            output_file
+        ])
 
 if __name__ == "__main__":
     app = Main(20)
-    app.run()
+    app.run(duracao_segundos=10, fps=30)
+    app.gerar_video(fps=30)

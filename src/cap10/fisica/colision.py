@@ -30,7 +30,7 @@ class Colision:
         for va in vertices_unicos_a:
             va_local = R_b.T @ (va - pos_b)
             if body_b.hull.contains([va_local])[0]:
-                print("Colidiu")
+                # print("Colidiu")
                 normal = self.achar_normal_colisao(va, vertices_mundo_b, faces_b)
                 return True, normal, va
 
@@ -38,7 +38,7 @@ class Colision:
             vb_local = R_a.T @ (vb - pos_a)
             if body_a.hull.contains([vb_local])[0]:
                 normal = self.achar_normal_colisao(vb, vertices_mundo_a, faces_a)
-                print("Colidiu") 
+                # print("Colidiu") 
                 return True, normal, vb
                     
         return False, None, None
