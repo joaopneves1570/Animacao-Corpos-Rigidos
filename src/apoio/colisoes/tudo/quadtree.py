@@ -163,7 +163,7 @@ class QuadTree:
             [x - base, y - altura]
         ]
 
-        glColor3f(0, 0, 0)
+        glColor3f(1, 1, 1)
         glBegin(GL_LINE_LOOP)
         for v in vertices:
             glVertex2fv(v)

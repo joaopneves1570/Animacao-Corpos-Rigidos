@@ -6,6 +6,7 @@ import glm
 import os
 from PIL import Image
 import subprocess
+import time
 
 from fisica.mundo import *
 from fisica.body import *
@@ -132,12 +133,17 @@ class Main:
         tempo_simulado = 0.0
         frame_atual = 0
 
+        lista_tempo_frames = []
+
         while frame_atual < total_frames and not glfw.window_should_close(self.window):
             glfw.poll_events()
 
             tempo_alvo = frame_atual * dt_video
             while tempo_simulado < tempo_alvo:
+                antes = time.perf_counter()
                 self.fisicaMundo.step(dt_fisica)
+                depois = time.perf_counter()
+                lista_tempo_frames.append(depois-antes)
                 tempo_simulado += dt_fisica
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -151,6 +157,9 @@ class Main:
 
             if frame_atual % 30 == 0:
                 print(f"Quadro {frame_atual}/{total_frames} salvo")
+
+        print(f'Média de tempo por passo Boliche: {np.mean(lista_tempo_frames)}')
+        print(f'Máximo de tempo por passo Boliche: {max(lista_tempo_frames)}')
 
         glfw.terminate()
         print("Geração de quadros concluída")

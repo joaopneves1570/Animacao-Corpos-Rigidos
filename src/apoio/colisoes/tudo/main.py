@@ -5,12 +5,25 @@ from OpenGL.GL import *
 import OpenGL.GL.shaders as gls
 import numpy as np
 import os
-import time
+import glob
+import subprocess
+from PIL import Image
 import matplotlib.pyplot as plt
 
+# ---------------- Configuração do cenário ----------------
 # Muda para False para testar a Força Bruta e ver a diferença no gráfico!
 USAR_QUADTREE = True
-NUM_BOLAS = 2
+NUM_BOLAS = 4
+
+DURACAO_SEGUNDOS = 28    # tempo SIMULADO (a cada 4 s entram mais bolas)
+FPS = 30                 # quadros por segundo do vídeo
+INTERVALO_SPAWN = 4.0    # segundos simulados entre cada entrada de bolas
+MOSTRAR_JANELA = False   # False = janela oculta (só gera os arquivos)
+COR_FUNDO = (0, 0, 0, 1)
+SEED = 42                # mesma semente => mesmas bolas nos dois métodos (None desativa)
+
+base = 800
+altura = 600
 
 bolas = []
 shaderId = 0
@@ -20,20 +33,29 @@ hist_comparacoes = []
 hist_n_bolas = []
 comparacoes_frame = 0
 
-def init():
-    global bolas, shaderId, mat_loc
+def nome_cenario():
+    return "colisoes_quadtree" if USAR_QUADTREE else "colisoes_forca_bruta"
 
-    for i in range(NUM_BOLAS):
+def criar_bolas(qtd):
+    for i in range(qtd):
         r, g, b = np.random.random(3)
         bola = Bola(raio=0.015, cor=(r, g, b))
-        bola.pos = np.array([np.random.uniform(-0.9, 0.9), 
+        bola.pos = np.array([np.random.uniform(-0.9, 0.9),
                              np.random.uniform(-0.9, 0.9)], dtype=np.float32)
-        bola.vel = np.array([np.random.uniform(-0.01, 0.01), 
+        bola.vel = np.array([np.random.uniform(-0.01, 0.01),
                              np.random.uniform(-0.01, 0.01)], dtype=np.float32)
         bolas.append(bola)
 
-    glClearColor(1, 1, 1, 1)
-    
+def init():
+    global shaderId, mat_loc
+
+    if SEED is not None:
+        np.random.seed(SEED)
+
+    criar_bolas(NUM_BOLAS)
+
+    glClearColor(*COR_FUNDO)
+
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     SHADER_DIR = os.path.join(BASE_DIR, "shaders")
 
@@ -42,7 +64,7 @@ def init():
 
     with open(os.path.join(SHADER_DIR, "fragmentShaders.glsl"), "r", encoding="utf-8") as file:
         fsSource = file.read()
-        
+
     vsId = gls.compileShader(vsSource, GL_VERTEX_SHADER)
     fsId = gls.compileShader(fsSource, GL_FRAGMENT_SHADER)
     shaderId = gls.compileProgram(vsId, fsId)
@@ -60,7 +82,7 @@ def resolver_colisao(bola_a, bola_b):
         dist = np.sqrt(dist)
         if dist == 0: dist = 0.001
         overlap = (bola_a.raio + bola_b.raio) - dist
-        
+
         direcao = np.array([delta[0] / dist, delta[1] / dist], dtype=np.float64)
         bola_a.pos += direcao * (overlap / 2)
         bola_b.pos -= direcao * (overlap / 2)
@@ -89,11 +111,11 @@ def check_collisions_bruteforce(bolas):
             comparacoes_frame += 1
             resolver_colisao(bolas[i], bolas[j])
 
-def render():
-    global hist_comparacoes, comparacoes_frame, hist_n_bolas
-    glClear(GL_COLOR_BUFFER_BIT)
-
+def atualizar_fisica():
+    """Um passo de física (antes isso ficava dentro do render). Devolve a QuadTree do passo."""
+    global comparacoes_frame
     comparacoes_frame = 0
+    qTree = None
 
     if USAR_QUADTREE:
         borda = Retangulo(0.0, 0.0, 1.0, 1.0)
@@ -107,6 +129,11 @@ def render():
             bola.update()
         check_collisions_bruteforce(bolas)
 
+    return qTree
+
+def desenhar(qTree):
+    glClear(GL_COLOR_BUFFER_BIT)
+
     #Renderização OpenGL
     glUseProgram(shaderId)
     for bola in bolas:
@@ -117,53 +144,108 @@ def render():
     glUseProgram(0)
 
     #Desenha o quadTree se ele estiver ativo
-    if USAR_QUADTREE:
+    if USAR_QUADTREE and qTree is not None:
         qTree.show()
 
-def keyboard(window, key, scancode, action, mods):
+def save_frame(window, frame_number, output_dir):
+    # Lê o tamanho real do framebuffer (pode diferir de base x altura em telas HiDPI)
+    w, h = glfw.get_framebuffer_size(window)
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1)
+    data = glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE)
+
+    image = Image.frombytes("RGB", (w, h), data)
+    image = image.transpose(Image.FLIP_TOP_BOTTOM)
+    image.save(os.path.join(output_dir, f"frame_{frame_number:05d}.png"))
+
+def simular_e_salvar(window, duracao_segundos, fps, output_dir):
     global NUM_BOLAS
+
+    dt_fisica = 1.0 / 60.0
+    dt_video = 1.0 / fps
+    total_frames = int(duracao_segundos * fps)
+    passos_spawn = int(round(INTERVALO_SPAWN / dt_fisica))
+
+    os.makedirs(output_dir, exist_ok=True)
+    # Apaga quadros de execuções anteriores, senão o ffmpeg os incluiria no vídeo
+    for antigo in glob.glob(os.path.join(output_dir, "frame_*.png")):
+        os.remove(antigo)
+
+    passos_feitos = 0
+    qTree = None
+
+    for frame_atual in range(total_frames):
+        glfw.poll_events()
+        if glfw.window_should_close(window):
+            break
+
+        # A física avança até o instante do quadro atual, em passos fixos de dt_fisica
+        passos_alvo = int(round(frame_atual * dt_video / dt_fisica)) + 1
+        while passos_feitos < passos_alvo:
+            # A cada INTERVALO_SPAWN segundos simulados entram mais bolas (antes: tempo real)
+            if passos_feitos > 0 and passos_feitos % passos_spawn == 0:
+                criar_bolas(NUM_BOLAS)
+                NUM_BOLAS *= 2
+                hist_comparacoes.append(comparacoes_frame)
+                hist_n_bolas.append(len(bolas))
+
+            qTree = atualizar_fisica()
+            passos_feitos += 1
+
+        desenhar(qTree)
+
+        # Lê o quadro ANTES do swap, quando o conteúdo desenhado ainda está no back buffer
+        save_frame(window, frame_atual, output_dir)
+        glfw.swap_buffers(window)
+
+        if (frame_atual + 1) % 30 == 0:
+            print(f"Quadro {frame_atual + 1}/{total_frames} salvo ({len(bolas)} bolas)")
+
+    print("Geração de quadros concluída")
+
+def gerar_video(output_dir, output_file, fps):
+    try:
+        subprocess.run([
+            "ffmpeg", "-y",
+            "-framerate", str(fps),
+            "-i", os.path.join(output_dir, "frame_%05d.png"),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            output_file
+        ], check=True)
+        print(f"Vídeo gerado: {output_file}")
+    except FileNotFoundError:
+        print("ffmpeg não encontrado. Instale-o (ex.: sudo apt install ffmpeg) e rode de novo.")
+    except subprocess.CalledProcessError:
+        print("O ffmpeg falhou ao gerar o vídeo.")
+
+def keyboard(window, key, scancode, action, mods):
     if action == glfw.PRESS:
         if key == glfw.KEY_ESCAPE:
             glfw.set_window_should_close(window, True)
-        
 
 def main():
-    global NUM_BOLAS, hist_comparacoes, comparacoes_frame, hist_n_bolas
-    glfw.init()
-    base = 800
-    altura = 600
+    if not glfw.init():
+        raise Exception("GLFW não inicializou")
+
+    if not MOSTRAR_JANELA:
+        glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+
     window = glfw.create_window(base, altura, f"Simulação - QuadTree: {USAR_QUADTREE}", None, None)
+    if not window:
+        raise Exception("Não foi possível criar a janela")
+
     glfw.make_context_current(window)
     glfw.set_key_callback(window, keyboard)
 
+    nome = nome_cenario()
+    output_dir = f"frames_{nome}"
+
     init()
-
-    ultimo_tempo = glfw.get_time()
-
-    while not glfw.window_should_close(window):
-        glfw.poll_events()
-
-        tempo_atual = glfw.get_time()
-
-        if tempo_atual - ultimo_tempo >= 4.0:
-            for i in range(NUM_BOLAS):
-                r, g, b = np.random.random(3)
-                bola = Bola(raio=0.015, cor=(r, g, b))
-                bola.pos = np.array([np.random.uniform(-0.9, 0.9), 
-                                     np.random.uniform(-0.9, 0.9)], dtype=np.float32)
-                bola.vel = np.array([np.random.uniform(-0.01, 0.01), 
-                                     np.random.uniform(-0.01, 0.01)], dtype=np.float32)
-                bolas.append(bola)
-            
-            ultimo_tempo = tempo_atual
-            NUM_BOLAS *= 2
-            hist_comparacoes.append(comparacoes_frame)
-            hist_n_bolas.append(len(bolas))
-
-        render()
-        glfw.swap_buffers(window)
-
+    simular_e_salvar(window, DURACAO_SEGUNDOS, FPS, output_dir)
     glfw.terminate()
+
+    gerar_video(output_dir, f"{nome}.mp4", FPS)
 
     if len(hist_comparacoes) > 0:
         plt.figure(figsize=(10, 5))
@@ -175,6 +257,7 @@ def main():
         plt.ylabel('Testes de Intersecção (Comparações)')
         plt.grid(True)
         plt.legend()
+        plt.savefig(f"{nome}_grafico.png", dpi=200)
         plt.show()
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ class Bola:
         self.g = np.array([0.0, -0.5, 0.0])
         self.massa = 1.0
         self.d = 0.1
-        self.velVento = np.array([-3.0, 0.0, 0.0])
+        self.velVento = np.array([-2.0, 0.0, 0.0])
         
         self.state = np.array([
             pos,
