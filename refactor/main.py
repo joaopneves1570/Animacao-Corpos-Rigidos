@@ -1,7 +1,9 @@
+import os
+os.environ["XDG_SESSION_TYPE"] = 'x11'
+
 import glfw
 from OpenGL.GL import *
 import OpenGL.GL.shaders as gls
-import os
 
 from fisica import *
 
@@ -11,13 +13,14 @@ class Main:
         self.altura = altura
         self.titulo = titulo
 
-        self.FisicaMundo = FisicaMundo()
+        #self.FisicaMundo = FisicaMundo()
         self.entidades = []
 
         self.shaderID = 0
         self.window = None
 
         self._init_glfw()
+        self.run()
 
     def _init_glfw(self):
 
@@ -73,13 +76,19 @@ class Main:
         # AS CONDIÇÕES INICIAIS DO SEU SISTEMA
 
     def run(self):
+        print("entrou no run")
         self.setupCena()
 
         while not glfw.window_should_close(self.window):
             glfw.poll_events()
 
             #SIMULACOES ACONTECEM AQUI
+            glClear(GL_COLOR | GL_DEPTH)
 
             glfw.swap_buffers(self.window)
 
         glfw.terminate()
+
+
+if __name__== '__main__':
+    app = Main(largura=600, altura=400, titulo="Teste")
